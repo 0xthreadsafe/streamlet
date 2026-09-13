@@ -32,7 +32,7 @@ class Stream(Generic[T]):
 
     def __repr__(self) -> str:
         state: str = "consumed" if self._consumed else "lazy"
-        return f"<Stream {state}>"
+        return f"<{type(self).__name__} {state}>"
 
     def map(self, mapper: Callable[[T], R]) -> Stream[R]:
         """Apply ``mapper`` to every item."""

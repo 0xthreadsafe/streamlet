@@ -34,3 +34,18 @@ def test_repr_reflects_state() -> None:
     assert repr(stream) == "<Stream lazy>"
     list(stream)
     assert repr(stream) == "<Stream consumed>"
+
+
+def test_is_iterable_but_not_an_iterator() -> None:
+    """Stream must stay iterable-only: iter() yields a separate iterator."""
+    stream = Stream([1, 2, 3])
+    assert not hasattr(stream, "__next__")
+    produced: object = iter(stream)
+    assert produced is not stream
+
+
+def test_repr_uses_the_runtime_class_name() -> None:
+    class Substream(Stream[int]):
+        __slots__ = ()
+
+    assert repr(Substream([1, 2, 3])) == "<Substream lazy>"
