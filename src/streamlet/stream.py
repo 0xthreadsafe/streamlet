@@ -5,12 +5,14 @@ import functools
 from collections import defaultdict
 from collections.abc import Callable, Hashable, Iterable, Iterator
 from itertools import dropwhile, islice, takewhile
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, overload
 
 T = TypeVar("T")
 R = TypeVar("R")
 Num = TypeVar("Num", int, float, complex)
 K = TypeVar("K", bound=Hashable)
+H = TypeVar("H", bound=Hashable)
+V = TypeVar("V")
 
 
 class StreamConsumedError(RuntimeError):
@@ -183,6 +185,38 @@ class Stream(Generic[T]):
         """Run ``action`` on every item, consuming the stream."""
         for item in self:
             action(item)
+
+    def to_tuple(self) -> tuple[T, ...]:
+        """Materialise the stream into a tuple."""
+        return tuple(self)
+
+    def to_set(self: Stream[H]) -> set[H]:
+        """Collect the items into a set. Only available for hashable items."""
+        return set(self)
+
+    @overload
+    def to_dict(self, key: Callable[[T], K]) -> dict[K, T]: ...
+
+    @overload
+    def to_dict(self, key: Callable[[T], K], value: Callable[[T], V]) -> dict[K, V]: ...
+
+    def to_dict(
+        self,
+        key: Callable[[T], K],
+        value: Callable[[T], V] | None = None,
+    ) -> dict[K, T] | dict[K, V]:
+        """Collect into a dict keyed by ``key``.
+
+        ``value`` defaults to the item itself. When two items produce the same
+        key the later one wins, matching ``dict`` construction.
+        """
+        if value is None:
+            return {key(item): item for item in self}
+        return {key(item): value(item) for item in self}
+
+    def join(self: Stream[str], separator: str = "") -> str:
+        """Concatenate the items with ``separator``. Only for string streams."""
+        return separator.join(self)
 
     def group_by(self, key: Callable[[T], K]) -> dict[K, list[T]]:
         """Group items by ``key``, consuming the stream.
