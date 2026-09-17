@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import builtins
 import functools
-from collections.abc import Callable, Iterable, Iterator
+from collections import defaultdict
+from collections.abc import Callable, Hashable, Iterable, Iterator
 from itertools import islice
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
 Num = TypeVar("Num", int, float, complex)
+K = TypeVar("K", bound=Hashable)
 
 
 class StreamConsumedError(RuntimeError):
@@ -101,6 +103,23 @@ class Stream(Generic[T]):
                     yield item
 
         return Stream(generate())
+
+    def group_by(self, key: Callable[[T], K]) -> dict[K, list[T]]:
+        """Group items by ``key``, consuming the stream.
+
+        Returns a plain ``dict`` mapping each key to the items that produced
+        it, with keys in first-seen order and members in stream order.
+
+        Unlike :func:`itertools.groupby`, items do not need to be adjacent --
+        every item sharing a key lands in the same group.
+
+        This is a terminal op and reads the whole stream, so it never
+        finishes on an infinite source.
+        """
+        groups: defaultdict[K, list[T]] = defaultdict(list)
+        for item in self:
+            groups[key(item)].append(item)
+        return dict(groups)
 
     def to_list(self) -> list[T]:
         """Materialise the stream into a list."""
