@@ -27,9 +27,14 @@ Target is a published PyPI package (the name is confirmed available).
 
 ## Project state
 
-Early scaffolding — `src/streamlet/__init__.py` holds only a `main()` stub wired to the `streamlet`
-console script. **None of the library above exists yet.** M1 (tooling) is in progress; everything
-from `Stream` onward is still backlog, so expect to create modules rather than find them.
+M1-M3 are complete. `src/streamlet/stream.py` holds `Stream[T]` with 32 public methods: source
+factories, lazy and buffering intermediate ops, terminal ops and collectors, plus `__or__` piping.
+183 tests pass under `mypy --strict`, including Hypothesis property tests and direct laziness
+proofs (call spies and pull counters, not just infinite-source canaries). `py.typed` ships in the
+wheel so consumers get real types.
+
+Still to build: M4 `Stream.from_file` (context-managed resources), M5 `AsyncStream`, M6 docstrings
+and release.
 
 Roadmap milestones, tracked in Linear: **M1** scaffolding/lint/CI · **M2** core `Stream[T]`,
 intermediate + terminal ops, laziness tests · **M3** `__or__`, constructors, `group_by`, edge cases
@@ -96,4 +101,7 @@ before CI.
 - **Branching model:** feature branches PR into `dev`; `main` is release-only. Always open PRs with
   `gh pr create --base dev` — `main` is the GitHub default branch, so the base must be set
   explicitly or the PR targets the wrong place.
+- **Keep `README.md` current.** Any commit that adds, removes, or changes user-facing API or
+  behaviour must update the README in the same commit -- the op tables, the examples, and the
+  roadmap checkboxes. Every code block in it is expected to run; verify before committing.
 - `.env` is gitignored and holds `LINEAR_API_KEY`.

@@ -1,7 +1,7 @@
 [project]
 name = "streamlet"
 version = "0.1.0"
-description = "Add your description here"
+description = "A fluent, lazy stream-processing library for Python, modeled after Java's Streams API"
 readme = "README.md"
 authors = [
     { name = "Alireza Ghasabeie", email = "a.ghasabeie@narmin.com" }
