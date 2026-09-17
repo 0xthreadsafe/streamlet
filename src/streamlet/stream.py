@@ -37,6 +37,15 @@ class Stream(Generic[T]):
         state: str = "consumed" if self._consumed else "lazy"
         return f"<{type(self).__name__} {state}>"
 
+    def __or__(self, fn: Callable[[Stream[T]], R]) -> R:
+        """Pipe this stream into ``fn`` -- ``stream | fn`` means ``fn(stream)``.
+
+        Lets any function that accepts a ``Stream`` act as a pipeline stage::
+
+            Stream(range(20)) | evens | (lambda s: s.take(3)) | list
+        """
+        return fn(self)
+
     def map(self, mapper: Callable[[T], R]) -> Stream[R]:
         """Apply ``mapper`` to every item."""
         return Stream(mapper(item) for item in self)
