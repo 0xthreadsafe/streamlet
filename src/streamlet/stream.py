@@ -4,7 +4,7 @@ import builtins
 import functools
 from collections import defaultdict
 from collections.abc import Callable, Hashable, Iterable, Iterator
-from itertools import dropwhile, islice, takewhile
+from itertools import chain, dropwhile, islice, takewhile
 from typing import Any, Generic, TypeVar, overload
 
 T = TypeVar("T")
@@ -49,6 +49,47 @@ class Stream(Generic[T]):
         Stream.from_iterable(range(10))
         """
         return cls(iterable)
+
+    @classmethod
+    def iterate(cls, seed: T, fn: Callable[[T], T]) -> Stream[T]:
+        """Build an infinite stream by repeatedly applying ``fn``.
+
+        Yields ``seed``, ``fn(seed)``, ``fn(fn(seed))``, ... Pair it with
+        :meth:`take` or :meth:`take_while` to bound it::
+
+            Stream.iterate(1, lambda n: n * 2).take(5)  # 1, 2, 4, 8, 16
+        """
+
+        def generate() -> Iterator[T]:
+            current = seed
+            while True:
+                yield current
+                current = fn(current)
+
+        return cls(generate())
+
+    @classmethod
+    def generate(cls, fn: Callable[[], T]) -> Stream[T]:
+        """Build an infinite stream by calling ``fn`` for each item.
+
+        ``fn`` takes no arguments, so it is only useful when it returns
+        something different each call -- a counter, a random value, a read.
+        """
+
+        def produce() -> Iterator[T]:
+            while True:
+                yield fn()
+
+        return cls(produce())
+
+    @classmethod
+    def concat(cls, *streams: Iterable[T]) -> Stream[T]:
+        """Join iterables end to end, lazily.
+
+        Later sources are not touched until the earlier ones are exhausted,
+        so an infinite source anywhere makes everything after it unreachable.
+        """
+        return cls(chain.from_iterable(streams))
 
     @classmethod
     def empty(cls) -> Stream[T]:
