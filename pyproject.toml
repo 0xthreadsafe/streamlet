@@ -3,6 +3,8 @@ name = "streamlet"
 version = "0.1.0"
 description = "A fluent, lazy stream-processing library for Python, modeled after Java's Streams API"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Alireza Ghasabeie", email = "a.ghasabeie@narmin.com" }
 ]

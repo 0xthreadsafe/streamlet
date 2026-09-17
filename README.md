@@ -184,4 +184,4 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pyt
 
 ## License
 
-Not yet chosen.
+[MIT](LICENSE)
