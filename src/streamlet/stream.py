@@ -167,6 +167,23 @@ class Stream(Generic[T]):
 
         return Stream(generate())
 
+    def min(self, key: Callable[[T], Any] | None = None) -> T | None:
+        """Return the smallest item, or ``None`` if the stream is empty."""
+        return builtins.min(self, key=key, default=None)  # type: ignore[type-var,arg-type]
+
+    def max(self, key: Callable[[T], Any] | None = None) -> T | None:
+        """Return the largest item, or ``None`` if the stream is empty."""
+        return builtins.max(self, key=key, default=None)  # type: ignore[type-var,arg-type]
+
+    def none(self, predicate: Callable[[T], bool]) -> bool:
+        """True if no item matches. Stops at the first match."""
+        return not builtins.any(predicate(item) for item in self)
+
+    def for_each(self, action: Callable[[T], object]) -> None:
+        """Run ``action`` on every item, consuming the stream."""
+        for item in self:
+            action(item)
+
     def group_by(self, key: Callable[[T], K]) -> dict[K, list[T]]:
         """Group items by ``key``, consuming the stream.
 
