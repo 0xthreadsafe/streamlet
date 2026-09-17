@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import builtins
+import functools
 from collections.abc import Callable, Iterable, Iterator
 from itertools import islice
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
+Num = TypeVar("Num", int, float, complex)
 
 
 class StreamConsumedError(RuntimeError):
@@ -65,3 +68,31 @@ class Stream(Generic[T]):
                     yield item
 
         return Stream(generate())
+
+    def to_list(self) -> list[T]:
+        """Materialise the stream into a list."""
+        return list(self)
+
+    def count(self) -> int:
+        """Count the items, consuming the stream."""
+        return builtins.sum(1 for _ in self)
+
+    def sum(self: Stream[Num]) -> Num:
+        """Add the items together. Only available on numeric streams."""
+        return builtins.sum(self)
+
+    def reduce(self, fn: Callable[[R, T], R], initial: R) -> R:
+        """Fold the stream into a single value, starting from ``initial``."""
+        return functools.reduce(fn, self, initial)
+
+    def first(self) -> T | None:
+        """Return the first item, or ``None`` if the stream is empty."""
+        return next(iter(self), None)
+
+    def any(self, predicate: Callable[[T], bool]) -> bool:
+        """True if any item matches. Stops at the first match."""
+        return builtins.any(predicate(item) for item in self)
+
+    def all(self, predicate: Callable[[T], bool]) -> bool:
+        """True if every item matches. Stops at the first failure."""
+        return builtins.all(predicate(item) for item in self)
