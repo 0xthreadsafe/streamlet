@@ -27,6 +27,30 @@ class Stream(Generic[T]):
         self._iterator: Iterator[T] = iter(iterable)
         self._consumed = False
 
+    @classmethod
+    def of(cls, *items: T) -> Stream[T]:
+        """Build a stream from individual arguments::
+
+            Stream.of(1, 2, 3)
+
+        Note that a single iterable argument becomes one item, not the
+        contents of that iterable -- use :meth:`from_iterable` for that.
+        """
+        return cls(items)
+
+    @classmethod
+    def from_iterable(cls, iterable: Iterable[T]) -> Stream[T]:
+        """Build a stream from an existing iterable::
+
+        Stream.from_iterable(range(10))
+        """
+        return cls(iterable)
+
+    @classmethod
+    def empty(cls) -> Stream[T]:
+        """Build a stream with no items."""
+        return cls(())
+
     def __iter__(self) -> Iterator[T]:
         if self._consumed:
             raise StreamConsumedError("this stream has already been consumed")
