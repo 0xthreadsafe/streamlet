@@ -5,7 +5,7 @@ import functools
 from collections import defaultdict
 from collections.abc import Callable, Hashable, Iterable, Iterator
 from itertools import dropwhile, islice, takewhile
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -133,6 +133,27 @@ class Stream(Generic[T]):
     def flat_map(self, fn: Callable[[T], Iterable[R]]) -> Stream[R]:
         """Map each item to an iterable and flatten one level."""
         return Stream(result for item in self for result in fn(item))
+
+    def sorted(
+        self,
+        key: Callable[[T], Any] | None = None,
+        *,
+        reverse: bool = False,
+    ) -> Stream[T]:
+        """Sort the items, optionally by ``key``.
+
+        This op must read the whole stream before it can emit anything, so it
+        buffers every item in memory and never finishes on an infinite source.
+        """
+        return Stream(sorted(self, key=key, reverse=reverse))  # type: ignore[type-var,arg-type]
+
+    def reverse(self) -> Stream[T]:
+        """Reverse the item order.
+
+        Like :meth:`sorted`, this buffers the whole stream and so never
+        finishes on an infinite source.
+        """
+        return Stream(reversed(self.to_list()))
 
     def distinct(self) -> Stream[T]:
         """Yield items the first time they are seen, preserving order."""
