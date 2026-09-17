@@ -4,7 +4,7 @@ import builtins
 import functools
 from collections import defaultdict
 from collections.abc import Callable, Hashable, Iterable, Iterator
-from itertools import islice
+from itertools import dropwhile, islice, takewhile
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
@@ -99,6 +99,36 @@ class Stream(Generic[T]):
         if n < 0:
             raise ValueError(f"skip() requires a non-negative count, got {n}")
         return Stream(islice(self, n, None))
+
+    def take_while(self, predicate: Callable[[T], bool]) -> Stream[T]:
+        """Yield items until ``predicate`` first fails, then stop.
+
+        Unlike :meth:`filter`, this stops at the first failure instead of
+        skipping it and carrying on.
+        """
+        return Stream(takewhile(predicate, self))
+
+    def drop_while(self, predicate: Callable[[T], bool]) -> Stream[T]:
+        """Discard items until ``predicate`` first fails, then yield the rest.
+
+        Once dropping stops it never resumes, even if later items would
+        satisfy ``predicate`` again.
+        """
+        return Stream(dropwhile(predicate, self))
+
+    def peek(self, action: Callable[[T], object]) -> Stream[T]:
+        """Run ``action`` on each item as it passes, yielding it unchanged.
+
+        Intended for debugging and logging. Because the stream is lazy,
+        ``action`` never runs for items that are not pulled.
+        """
+
+        def generate() -> Iterator[T]:
+            for item in self:
+                action(item)
+                yield item
+
+        return Stream(generate())
 
     def flat_map(self, fn: Callable[[T], Iterable[R]]) -> Stream[R]:
         """Map each item to an iterable and flatten one level."""
