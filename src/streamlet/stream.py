@@ -5,7 +5,11 @@ import functools
 from collections import defaultdict
 from collections.abc import Callable, Hashable, Iterable, Iterator
 from itertools import chain, dropwhile, islice, takewhile
-from typing import Any, Generic, TypeVar, overload
+from os import PathLike
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
+
+if TYPE_CHECKING:
+    from streamlet.file_stream import FileStream
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -49,6 +53,30 @@ class Stream(Generic[T]):
         Stream.from_iterable(range(10))
         """
         return cls(iterable)
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        *,
+        encoding: str = "utf-8",
+        errors: str | None = None,
+        newline: str | None = None,
+    ) -> FileStream:
+        """Stream the lines of a file, closing the handle when done.
+
+        Returns a :class:`~streamlet.file_stream.FileStream`, which is also a
+        context manager. Reading to the end closes the file; stopping early
+        does not, unless you use ``with``::
+
+            with Stream.from_file("app.log") as lines:
+                first_error = lines.filter(lambda line: "ERROR" in line).first()
+
+        Lines keep their trailing newline, matching ``open()``.
+        """
+        from streamlet.file_stream import open_file_stream
+
+        return open_file_stream(path, encoding=encoding, errors=errors, newline=newline)
 
     @classmethod
     def iterate(cls, seed: T, fn: Callable[[T], T]) -> Stream[T]:

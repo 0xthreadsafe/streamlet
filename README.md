@@ -83,6 +83,7 @@ stream.to_list()  # StreamConsumedError
 | `Stream.iterate(seed, fn)` | infinite: `seed`, `fn(seed)`, `fn(fn(seed))`, … |
 | `Stream.generate(fn)` | infinite: repeated calls to `fn()` |
 | `Stream.concat(*iterables)` | join sources end to end |
+| `Stream.from_file(path)` | lines of a file, handle managed |
 
 ### Intermediate ops — lazy, return a new `Stream`
 
@@ -125,6 +126,23 @@ def errors_only(stream):
 Stream(lines) | errors_only | (lambda s: s.take(10)) | list
 ```
 
+## Files
+
+`Stream.from_file` streams a file's lines lazily and owns the handle:
+
+```python
+with Stream.from_file("app.log") as lines:
+    errors = lines.map(str.rstrip).filter(lambda line: line.startswith("ERROR")).to_list()
+```
+
+The file is closed when the stream is exhausted, when an exception escapes iteration, or when
+the `with` block exits. If you stop early *without* `with` — a `break`, a `first()` — the handle
+stays open until the stream is garbage collected, which is not a moment you control. Use `with`
+whenever you might not read to the end.
+
+Lines keep their trailing newline, matching `open()`. Pass `encoding`, `errors` or `newline`
+through as needed.
+
 ## Typing
 
 `Stream[T]` is generic and ships a `py.typed` marker, so element types flow through a chain:
@@ -160,7 +178,7 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pyt
 
 - [x] Core `Stream[T]`, intermediate + terminal ops, laziness tests
 - [x] `__or__` pipe chaining, constructors, `group_by`, edge cases
-- [ ] `Stream.from_file` — context-managed resource streams
+- [x] `Stream.from_file` — context-managed resource streams
 - [ ] `AsyncStream` — concurrent `map` over `asyncio.TaskGroup`
 - [ ] Docstrings, README examples, PyPI release
 
