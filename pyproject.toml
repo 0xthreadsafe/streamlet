@@ -6,7 +6,7 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [
-    { name = "Alireza Ghasabeie", email = "a.ghasabeie@narmin.com" }
+    { name = "0xthreadsafe", email = "a.ghasabeh@gmail.com" }
 ]
 requires-python = ">=3.10"
 dependencies = []
