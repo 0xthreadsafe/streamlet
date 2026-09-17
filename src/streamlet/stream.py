@@ -81,11 +81,23 @@ class Stream(Generic[T]):
         return Stream(item for item in self if predicate(item))
 
     def take(self, n: int) -> Stream[T]:
-        """Yield at most the first ``n`` items."""
+        """Yield at most the first ``n`` items.
+
+        Raises:
+            ValueError: if ``n`` is negative.
+        """
+        if n < 0:
+            raise ValueError(f"take() requires a non-negative count, got {n}")
         return Stream(islice(self, n))
 
     def skip(self, n: int) -> Stream[T]:
-        """Discard the first ``n`` items."""
+        """Discard the first ``n`` items.
+
+        Raises:
+            ValueError: if ``n`` is negative.
+        """
+        if n < 0:
+            raise ValueError(f"skip() requires a non-negative count, got {n}")
         return Stream(islice(self, n, None))
 
     def flat_map(self, fn: Callable[[T], Iterable[R]]) -> Stream[R]:
