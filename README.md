@@ -135,10 +135,9 @@ with Stream.from_file("app.log") as lines:
     errors = lines.map(str.rstrip).filter(lambda line: line.startswith("ERROR")).to_list()
 ```
 
-The file is closed when the stream is exhausted, when an exception escapes iteration, or when
-the `with` block exits. If you stop early *without* `with` — a `break`, a `first()` — the handle
-stays open until the stream is garbage collected, which is not a moment you control. Use `with`
-whenever you might not read to the end.
+The file is closed on every exit path: exhausting the stream, stopping early with a `break` or
+a partial read, an exception escaping iteration, or leaving the `with` block. `with` remains the
+clearest way to express the intent, and it closes the file even if you never iterate at all.
 
 Lines keep their trailing newline, matching `open()`. Pass `encoding`, `errors` or `newline`
 through as needed.

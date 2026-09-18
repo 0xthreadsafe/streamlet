@@ -14,13 +14,12 @@ from streamlet.stream import Stream
 class FileStream(Stream[str]):
     """A lazy stream of lines that owns its file handle.
 
-    The handle is closed when the stream is exhausted, when an exception
-    escapes iteration, or when a ``with`` block exits.
+    The handle is closed on every exit path: exhausting the stream, stopping
+    early with a ``break`` or a partial read, an exception escaping iteration,
+    or leaving a ``with`` block.
 
-    If you stop early *without* ``with`` -- a ``break``, a ``first()`` -- the
-    file stays open until the stream object itself is garbage collected, which
-    is not a moment you control. Use ``with`` whenever you might not read to
-    the end::
+    ``with`` is still the clearest way to express the intent, and it closes
+    the file even if you never iterate at all::
 
         with Stream.from_file("app.log") as lines:
             first_error = lines.filter(lambda line: "ERROR" in line).first()
@@ -29,7 +28,7 @@ class FileStream(Stream[str]):
     ``.map(str.rstrip)`` if you want them stripped.
     """
 
-    __slots__ = ("_handle",)
+    __slots__ = ("__weakref__", "_handle")
 
     def __init__(self, handle: IO[str]) -> None:
         self._handle = handle
@@ -41,6 +40,20 @@ class FileStream(Stream[str]):
             yield from handle
         finally:
             handle.close()
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate the lines, closing the file if anything goes wrong.
+
+        The generator's own ``finally`` covers exhaustion, but an exception
+        raised in the *caller's* loop body only suspends the generator -- it
+        does not finalise it. Closing here covers that case too.
+        """
+        iterator = super().__iter__()
+        try:
+            yield from iterator
+        except BaseException:
+            self.close()
+            raise
 
     def __enter__(self) -> FileStream:
         return self

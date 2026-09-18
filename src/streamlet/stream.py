@@ -65,9 +65,8 @@ class Stream(Generic[T]):
     ) -> FileStream:
         """Stream the lines of a file, closing the handle when done.
 
-        Returns a :class:`~streamlet.file_stream.FileStream`, which is also a
-        context manager. Reading to the end closes the file; stopping early
-        does not, unless you use ``with``::
+        Returns a :class:`~streamlet.file_stream.FileStream`, which closes the
+        handle on every exit path and is also a context manager::
 
             with Stream.from_file("app.log") as lines:
                 first_error = lines.filter(lambda line: "ERROR" in line).first()
