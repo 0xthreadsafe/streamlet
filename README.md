@@ -19,6 +19,7 @@ The goal is to make `itertools`' power reachable through clean, chainable syntax
 
 > **Status: in development.** The API below works and is tested, but Streamlet is not
 > published on PyPI yet. Install from source (see [Development](#development)).
+> Requires **Python 3.11+**.
 
 ## Why
 
@@ -142,6 +143,39 @@ clearest way to express the intent, and it closes the file even if you never ite
 Lines keep their trailing newline, matching `open()`. Pass `encoding`, `errors` or `newline`
 through as needed.
 
+## Async
+
+`AsyncStream[T]` is the same API over an async source, driven with `async for` and `await`:
+
+```python
+import asyncio
+
+from streamlet import AsyncStream
+
+
+async def fetch(url: str) -> str: ...
+
+
+async def main() -> None:
+    titles = await (
+        AsyncStream.from_iterable(urls)
+        .filter(lambda u: u.startswith("https://"))
+        .map(fetch)
+        .take(10)
+        .to_list()
+    )
+```
+
+Every op that takes a function accepts **either a plain function or a coroutine function**, so
+`.map(str)` and `.map(fetch)` both work and both type correctly.
+
+Sources can be sync or async: `AsyncStream.of(...)`, `.from_iterable(list)`,
+`.from_async_iterable(agen)`, `.empty()`, `.iterate(seed, fn)`, `.generate(fn)`, and
+`.concat(...)` — which mixes both kinds.
+
+Terminal ops are coroutines, so they need `await`. Everything else matches `Stream`: the same
+intermediate ops, the same single-use semantics, the same laziness.
+
 ## Typing
 
 `Stream[T]` is generic and ships a `py.typed` marker, so element types flow through a chain:
@@ -161,7 +195,7 @@ Some ops are restricted by self-type and fail at type-check time, not runtime:
 ## Development
 
 ```bash
-uv sync                    # install project + dev tools
+uv sync                    # install project + dev tools (needs Python 3.11+)
 uv run pytest              # tests
 uv run ruff check .        # lint
 uv run mypy                # type check (strict)
