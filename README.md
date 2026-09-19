@@ -169,6 +169,21 @@ async def main() -> None:
 Every op that takes a function accepts **either a plain function or a coroutine function**, so
 `.map(str)` and `.map(fetch)` both work and both type correctly.
 
+### Concurrency
+
+`.map(fetch)` awaits one item at a time. `.map_concurrent(fetch)` runs several at once:
+
+```python
+results = await AsyncStream.from_iterable(urls).map_concurrent(fetch, limit=8).to_list()
+```
+
+At most `limit` calls are in flight, and items are pulled from the source only as slots free up —
+so it stays lazy and works on infinite sources. Results come back in source order by default;
+pass `ordered=False` to get each one as soon as it is ready.
+
+If the mapper raises, the original exception propagates (not an `ExceptionGroup`) and every
+in-flight call is cancelled. Abandoning the stream early — a `take`, a `break` — cancels them too.
+
 Sources can be sync or async: `AsyncStream.of(...)`, `.from_iterable(list)`,
 `.from_async_iterable(agen)`, `.empty()`, `.iterate(seed, fn)`, `.generate(fn)`, and
 `.concat(...)` — which mixes both kinds.
@@ -212,7 +227,7 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pyt
 - [x] Core `Stream[T]`, intermediate + terminal ops, laziness tests
 - [x] `__or__` pipe chaining, constructors, `group_by`, edge cases
 - [x] `Stream.from_file` — context-managed resource streams
-- [ ] `AsyncStream` — concurrent `map` over `asyncio.TaskGroup`
+- [x] `AsyncStream` — bounded concurrent `map`
 - [ ] Docstrings, README examples, PyPI release
 
 ## License

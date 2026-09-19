@@ -8,8 +8,9 @@ function, so ``map(str)`` and ``map(fetch)`` both work.
 
 from __future__ import annotations
 
+import asyncio
 import builtins
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import (
     AsyncIterable,
     AsyncIterator,
@@ -31,6 +32,15 @@ Num = TypeVar("Num", int, float, complex)
 
 MaybeAsync = Callable[[T], "R | Awaitable[R]"]
 MaybeAsync2 = Callable[[R, T], "R | Awaitable[R]"]
+
+
+async def _cancel_all(tasks: Iterable[asyncio.Task[Any]]) -> None:
+    """Cancel every task and wait for the cancellations to settle."""
+    remaining = [task for task in tasks if not task.done()]
+    for task in remaining:
+        task.cancel()
+    if remaining:
+        await asyncio.gather(*remaining, return_exceptions=True)
 
 
 async def _resolve(value: R | Awaitable[R]) -> R:
@@ -155,6 +165,80 @@ class AsyncStream(Generic[T]):
                 yield await _resolve(mapper(item))
 
         return AsyncStream(generate())
+
+    def map_concurrent(
+        self,
+        mapper: Callable[[T], Awaitable[R]],
+        *,
+        limit: int = 8,
+        ordered: bool = True,
+    ) -> AsyncStream[R]:
+        """Apply an async ``mapper`` to several items at once.
+
+        At most ``limit`` calls are in flight at any moment, and items are
+        only pulled from the source as slots free up -- so this stays lazy and
+        works on infinite sources.
+
+        With ``ordered=True`` (the default) results come out in source order,
+        which costs some latency: a slow item holds back the ones behind it.
+        With ``ordered=False`` each result is yielded as soon as it is ready.
+
+        If the mapper raises, the exception propagates as-is and every
+        in-flight call is cancelled. Abandoning the stream early -- a
+        ``take``, a ``break`` -- cancels them too.
+
+        Args:
+            mapper: an async callable applied to each item.
+            limit: maximum number of concurrent calls. Must be at least 1.
+            ordered: whether to preserve source order.
+
+        Raises:
+            ValueError: if ``limit`` is less than 1.
+        """
+        if limit < 1:
+            raise ValueError(f"map_concurrent() requires a limit of at least 1, got {limit}")
+
+        generate = self._map_ordered if ordered else self._map_unordered
+        return AsyncStream(generate(mapper, limit))
+
+    async def _map_ordered(
+        self, mapper: Callable[[T], Awaitable[R]], limit: int
+    ) -> AsyncIterator[R]:
+        """Sliding window of in-flight tasks, yielded in source order."""
+        window: deque[asyncio.Task[R]] = deque()
+        try:
+            async for item in self:
+                window.append(asyncio.ensure_future(mapper(item)))
+                if len(window) >= limit:
+                    yield await window.popleft()
+            while window:
+                yield await window.popleft()
+        finally:
+            await _cancel_all(window)
+
+    async def _map_unordered(
+        self, mapper: Callable[[T], Awaitable[R]], limit: int
+    ) -> AsyncIterator[R]:
+        """Same window, but each result is yielded as soon as it is ready."""
+        pending: set[asyncio.Task[R]] = set()
+        source_done = False
+        iterator = self.__aiter__()
+        try:
+            while True:
+                while not source_done and len(pending) < limit:
+                    try:
+                        item = await iterator.__anext__()
+                    except StopAsyncIteration:
+                        source_done = True
+                    else:
+                        pending.add(asyncio.ensure_future(mapper(item)))
+                if not pending:
+                    return
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    yield task.result()
+        finally:
+            await _cancel_all(pending)
 
     def filter(self, predicate: MaybeAsync[T, bool]) -> AsyncStream[T]:
         """Keep only items where ``predicate`` is true."""
