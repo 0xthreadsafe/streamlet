@@ -184,6 +184,18 @@ pass `ordered=False` to get each one as soon as it is ready.
 If the mapper raises, the original exception propagates (not an `ExceptionGroup`) and every
 in-flight call is cancelled. Abandoning the stream early — a `take`, a `break` — cancels them too.
 
+A runnable fan-out demo lives in [`examples/concurrent_fan_out.py`](examples/concurrent_fan_out.py):
+
+```bash
+uv run python examples/concurrent_fan_out.py
+```
+
+```
+sequential : 24 requests in 1.95s (1 at a time)
+concurrent : 24 requests in 0.24s (up to 8 at once) -- 8.0x faster
+first infra user: user-02 -- fetched 8/24 users, not all
+```
+
 Sources can be sync or async: `AsyncStream.of(...)`, `.from_iterable(list)`,
 `.from_async_iterable(agen)`, `.empty()`, `.iterate(seed, fn)`, `.generate(fn)`, and
 `.concat(...)` — which mixes both kinds.
