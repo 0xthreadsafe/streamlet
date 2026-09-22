@@ -151,13 +151,8 @@ async def test_closing_a_stream_finalises_its_source() -> None:
     assert cleaned == ["closed"]
 
 
-async def test_closing_a_stage_does_not_yet_reach_through_to_the_source() -> None:
-    """Documents current behaviour: ``aclose`` stops at the stage it is called on.
-
-    An abandoned multi-stage pipeline leaves the source suspended until the
-    event loop shuts its async generators down (or the interpreter collects
-    them), rather than closing it right away. Tracked in THR-34.
-    """
+async def test_closing_a_stage_reaches_through_to_the_source() -> None:
+    """Each stage closes the one behind it, so the whole chain unwinds."""
     cleaned: list[str] = []
 
     async def tracked() -> AsyncIterator[int]:
@@ -167,11 +162,12 @@ async def test_closing_a_stage_does_not_yet_reach_through_to_the_source() -> Non
         finally:
             cleaned.append("closed")
 
-    iterator = AsyncStream(tracked()).map(lambda n: n * 2).__aiter__()
+    iterator = AsyncStream(tracked()).map(lambda n: n * 2).filter(lambda n: True).__aiter__()
     assert await iterator.__anext__() == 0
+    assert cleaned == []
 
     await cast("AsyncGenerator[int, None]", iterator).aclose()
-    assert cleaned == []
+    assert cleaned == ["closed"]
 
 
 async def test_a_failing_source_finalises_itself() -> None:
