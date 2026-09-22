@@ -19,6 +19,7 @@ from collections.abc import (
     Hashable,
     Iterable,
 )
+from contextlib import asynccontextmanager
 from typing import Any, Generic, TypeVar, cast, overload
 
 from streamlet.stream import StreamConsumedError
@@ -43,6 +44,39 @@ async def _cancel_all(tasks: Iterable[asyncio.Task[Any]]) -> None:
         await asyncio.gather(*remaining, return_exceptions=True)
 
 
+async def _aclose(iterator: AsyncIterator[Any]) -> None:
+    """Close ``iterator`` if it can be closed.
+
+    Async generators can be finalised on demand; a hand-written
+    ``AsyncIterator`` has nothing to close, and that is not an error.
+    """
+    aclose = getattr(iterator, "aclose", None)
+    if aclose is not None:
+        await aclose()
+
+
+@asynccontextmanager
+async def _consuming(source: AsyncIterable[T]) -> AsyncIterator[AsyncIterator[T]]:
+    """Iterate ``source`` and finalise it on the way out, however that happens.
+
+    ``async for`` alone does not close what it iterates, so a stage that is
+    abandoned -- a ``take`` that has had enough, a terminal op that
+    short-circuits, an exception -- would leave everything upstream of it
+    suspended until the event loop shut its async generators down. Closing
+    here turns that into a deterministic hand-off: each stage closes the one
+    behind it, so the whole chain unwinds to the source.
+
+    The exception is a bare ``break`` out of an ``async for`` over the
+    outermost stage: Python gives nothing to hook there, so that one needs
+    ``contextlib.aclosing`` at the call site.
+    """
+    iterator = source.__aiter__()
+    try:
+        yield iterator
+    finally:
+        await _aclose(iterator)
+
+
 async def _resolve(value: R | Awaitable[R]) -> R:
     """Await ``value`` if it is awaitable, otherwise return it unchanged."""
     if isinstance(value, Awaitable):
@@ -59,6 +93,13 @@ class AsyncStream(Generic[T]):
 
     Like :class:`~streamlet.stream.Stream`, a stream is consumed once;
     iterating a second time raises :class:`StreamConsumedError`.
+
+    Cleanup runs eagerly: each stage closes the one behind it, so a bounded
+    ``take``, a short-circuiting terminal op or an exception unwinds the
+    whole chain and finalises the source there and then. The one case that
+    needs help is a bare ``break`` out of an ``async for`` -- wrap the
+    iterator in :func:`contextlib.aclosing` when the source holds something
+    that must be released promptly.
     """
 
     __slots__ = ("__weakref__", "_consumed", "_iterator")
@@ -174,8 +215,9 @@ class AsyncStream(Generic[T]):
         """
 
         async def generate() -> AsyncIterator[R]:
-            async for item in self:
-                yield await _resolve(mapper(item))
+            async with _consuming(self) as items:
+                async for item in items:
+                    yield await _resolve(mapper(item))
 
         return AsyncStream(generate())
 
@@ -221,10 +263,11 @@ class AsyncStream(Generic[T]):
         """Sliding window of in-flight tasks, yielded in source order."""
         window: deque[asyncio.Task[R]] = deque()
         try:
-            async for item in self:
-                window.append(asyncio.ensure_future(mapper(item)))
-                if len(window) >= limit:
-                    yield await window.popleft()
+            async with _consuming(self) as items:
+                async for item in items:
+                    window.append(asyncio.ensure_future(mapper(item)))
+                    if len(window) >= limit:
+                        yield await window.popleft()
             while window:
                 yield await window.popleft()
         finally:
@@ -253,14 +296,16 @@ class AsyncStream(Generic[T]):
                     yield task.result()
         finally:
             await _cancel_all(pending)
+            await _aclose(iterator)
 
     def filter(self, predicate: MaybeAsync[T, bool]) -> AsyncStream[T]:
         """Keep only items where ``predicate`` is true."""
 
         async def generate() -> AsyncIterator[T]:
-            async for item in self:
-                if await _resolve(predicate(item)):
-                    yield item
+            async with _consuming(self) as items:
+                async for item in items:
+                    if await _resolve(predicate(item)):
+                        yield item
 
         return AsyncStream(generate())
 
@@ -268,9 +313,10 @@ class AsyncStream(Generic[T]):
         """Map each item to an iterable and flatten one level."""
 
         async def generate() -> AsyncIterator[R]:
-            async for item in self:
-                for result in await _resolve(fn(item)):
-                    yield result
+            async with _consuming(self) as items:
+                async for item in items:
+                    for result in await _resolve(fn(item)):
+                        yield result
 
         return AsyncStream(generate())
 
@@ -279,10 +325,11 @@ class AsyncStream(Generic[T]):
 
         async def generate() -> AsyncIterator[T]:
             seen: set[T] = set()
-            async for item in self:
-                if item not in seen:
-                    seen.add(item)
-                    yield item
+            async with _consuming(self) as items:
+                async for item in items:
+                    if item not in seen:
+                        seen.add(item)
+                        yield item
 
         return AsyncStream(generate())
 
@@ -300,11 +347,12 @@ class AsyncStream(Generic[T]):
             if n == 0:
                 return
             taken = 0
-            async for item in self:
-                yield item
-                taken += 1
-                if taken >= n:
-                    return
+            async with _consuming(self) as items:
+                async for item in items:
+                    yield item
+                    taken += 1
+                    if taken >= n:
+                        return
 
         return AsyncStream(generate())
 
@@ -320,11 +368,12 @@ class AsyncStream(Generic[T]):
 
         async def generate() -> AsyncIterator[T]:
             skipped = 0
-            async for item in self:
-                if skipped < n:
-                    skipped += 1
-                    continue
-                yield item
+            async with _consuming(self) as items:
+                async for item in items:
+                    if skipped < n:
+                        skipped += 1
+                        continue
+                    yield item
 
         return AsyncStream(generate())
 
@@ -332,10 +381,11 @@ class AsyncStream(Generic[T]):
         """Yield items until ``predicate`` first fails, then stop."""
 
         async def generate() -> AsyncIterator[T]:
-            async for item in self:
-                if not await _resolve(predicate(item)):
-                    return
-                yield item
+            async with _consuming(self) as items:
+                async for item in items:
+                    if not await _resolve(predicate(item)):
+                        return
+                    yield item
 
         return AsyncStream(generate())
 
@@ -344,11 +394,12 @@ class AsyncStream(Generic[T]):
 
         async def generate() -> AsyncIterator[T]:
             dropping = True
-            async for item in self:
-                if dropping and await _resolve(predicate(item)):
-                    continue
-                dropping = False
-                yield item
+            async with _consuming(self) as items:
+                async for item in items:
+                    if dropping and await _resolve(predicate(item)):
+                        continue
+                    dropping = False
+                    yield item
 
         return AsyncStream(generate())
 
@@ -356,9 +407,10 @@ class AsyncStream(Generic[T]):
         """Run ``action`` on each item as it passes, yielding it unchanged."""
 
         async def generate() -> AsyncIterator[T]:
-            async for item in self:
-                await _resolve(action(item))
-                yield item
+            async with _consuming(self) as items:
+                async for item in items:
+                    await _resolve(action(item))
+                    yield item
 
         return AsyncStream(generate())
 
@@ -431,22 +483,25 @@ class AsyncStream(Generic[T]):
 
     async def first(self) -> T | None:
         """Return the first item, or ``None`` if the stream is empty."""
-        async for item in self:
-            return item
+        async with _consuming(self) as items:
+            async for item in items:
+                return item
         return None
 
     async def any(self, predicate: MaybeAsync[T, bool]) -> bool:
         """True if any item matches. Stops at the first match."""
-        async for item in self:
-            if await _resolve(predicate(item)):
-                return True
+        async with _consuming(self) as items:
+            async for item in items:
+                if await _resolve(predicate(item)):
+                    return True
         return False
 
     async def all(self, predicate: MaybeAsync[T, bool]) -> bool:
         """True if every item matches. Stops at the first failure."""
-        async for item in self:
-            if not await _resolve(predicate(item)):
-                return False
+        async with _consuming(self) as items:
+            async for item in items:
+                if not await _resolve(predicate(item)):
+                    return False
         return True
 
     async def none(self, predicate: MaybeAsync[T, bool]) -> bool:

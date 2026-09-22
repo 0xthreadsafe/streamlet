@@ -286,6 +286,24 @@ Sources can be sync or async: `AsyncStream.of(...)`, `.from_iterable(list)`,
 Terminal ops are coroutines, so they need `await`. Everything else matches `Stream`: the same
 intermediate ops, the same single-use semantics, the same laziness.
 
+### Cleanup
+
+Each stage closes the one behind it, so a pipeline that stops early finalises its source right
+away — a bounded `take`, a short-circuiting `first`/`any`/`all`, or an exception all unwind the
+whole chain. That matters when the source holds something: a connection, a cursor, a handle.
+
+One case Python gives no hook for is a bare `break` out of an `async for`, which leaves the
+outermost stage suspended. Wrap the iterator when that matters:
+
+```python
+from contextlib import aclosing
+
+async with aclosing(stream.map(fetch).__aiter__()) as items:
+    async for item in items:
+        if done(item):
+            break
+```
+
 ## Typing
 
 `Stream[T]` is generic and ships a `py.typed` marker, so element types flow through a chain:
