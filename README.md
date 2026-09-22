@@ -17,9 +17,15 @@ from streamlet import Stream
 
 The goal is to make `itertools`' power reachable through clean, chainable syntax.
 
-> **Status: in development.** The API below works and is tested, but Streamlet is not
-> published on PyPI yet. Install from source (see [Development](#development)).
-> Requires **Python 3.11+**.
+```bash
+pip install streamlet    # or: uv add streamlet
+```
+
+Requires **Python 3.11+**, has no dependencies, and ships type information (`py.typed`).
+
+> **Status: 0.1.0, awaiting its first upload.** Everything below works and is tested; until the
+> release lands on PyPI, install from source (see [Development](#development)). Before 1.0.0 the
+> API may still change — see [versioning](#versioning).
 
 ## Why
 
@@ -311,13 +317,25 @@ Run everything the way CI does:
 uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
 ```
 
+## Versioning
+
+Streamlet follows [semantic versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0 a
+breaking change bumps the minor version and everything else bumps the patch version. Changes
+are recorded in [CHANGELOG.md](CHANGELOG.md).
+
+Releases are cut from a tag: pushing `vX.Y.Z` builds the artifacts, checks the tag against the
+version in `pyproject.toml`, and uploads to Test PyPI. Publishing the GitHub release for that
+tag uploads the same artifacts to PyPI. Both go through PyPI trusted publishing, so no token
+lives in this repository.
+
 ## Roadmap
 
 - [x] Core `Stream[T]`, intermediate + terminal ops, laziness tests
 - [x] `__or__` pipe chaining, constructors, `group_by`, edge cases
 - [x] `Stream.from_file` — context-managed resource streams
 - [x] `AsyncStream` — bounded concurrent `map`
-- [ ] Docstrings, README examples, PyPI release
+- [x] Docstrings, README examples
+- [ ] PyPI release
 
 ## License
 
