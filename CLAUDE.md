@@ -18,8 +18,8 @@ prefer the idiomatic-and-showcase-worthy implementation over the shortest one:
 |---|---|
 | Generators / laziness | Intermediate ops (`map`, `filter`, `take`, `skip`, `flat_map`, `distinct`) build a pipeline; **nothing executes until a terminal op runs** |
 | Magic methods | `__iter__`, `__repr__`, and `__or__` for pipe-style chaining |
-| Context managers | `Stream.from_file(path)` via `__enter__`/`__exit__`; the handle must close on early `break` or exception |
-| Async | `AsyncStream[T]` with `__aiter__`, concurrent map over `asyncio.TaskGroup` with bounded concurrency |
+| Context managers | `Stream.from_file(path)` / `from_handle(h)` via `__enter__`/`__exit__`; the handle must close on early `break` or exception |
+| Async | `AsyncStream[T]` with `__aiter__`, concurrent map with bounded concurrency |
 | Generics | `Stream[T]` via `typing.Generic`, for real IDE autocomplete |
 | Terminal ops | `to_list`, `reduce`, `sum`, `count`, `first`, `any`, `all`, `group_by` |
 
@@ -27,19 +27,20 @@ Target is a published PyPI package (the name is confirmed available).
 
 ## Project state
 
-M1-M3 are complete. `src/streamlet/stream.py` holds `Stream[T]` with 32 public methods: source
-factories, lazy and buffering intermediate ops, terminal ops and collectors, plus `__or__` piping.
-183 tests pass under `mypy --strict`, including Hypothesis property tests and direct laziness
-proofs (call spies and pull counters, not just infinite-source canaries). `py.typed` ships in the
-wheel so consumers get real types.
+M1-M6 are complete bar the upload itself. `src/streamlet/stream.py` holds `Stream[T]`;
+`file_stream.py` holds `ResourceStream[T]`/`FileStream` (`from_file`, `from_handle`);
+`async_stream.py` holds `AsyncStream[T]` with `map_concurrent`. 336 tests pass under
+`mypy --strict`, including Hypothesis property tests, direct laziness proofs (call spies and
+pull counters, not just infinite-source canaries), closing guarantees and async exception
+propagation. `py.typed` ships in the wheel so consumers get real types.
 
-Still to build: M4 `Stream.from_file` (context-managed resources), M5 `AsyncStream`, M6 docstrings
-and release.
+Still open: THR-26's actual uploads (Test PyPI, then PyPI -- both need trusted publishing
+configured first) and THR-34, propagating `aclose` through `AsyncStream` stages.
 
 Roadmap milestones, tracked in Linear: **M1** scaffolding/lint/CI · **M2** core `Stream[T]`,
 intermediate + terminal ops, laziness tests · **M3** `__or__`, constructors, `group_by`, edge cases
-· **M4** `from_file` resource streams · **M5** `AsyncStream` · **M6** docstrings, `mypy --strict`,
-README, PyPI release.
+· **M4** `from_file` / `from_handle` resource streams · **M5** `AsyncStream` · **M6** docstrings,
+`mypy --strict`, README, PyPI release.
 
 ## Linear
 
@@ -82,16 +83,19 @@ commit aborts by design — `git add -A` and commit again. Install it once per c
 `uv run pre-commit install`. Hook versions in `.pre-commit-config.yaml` are pinned separately from
 `pyproject.toml`, so bump both together (`uv run pre-commit autoupdate`).
 
-CI (`.github/workflows/ci.yml`) runs the same four steps across Python 3.10–3.14 via `uv sync`, so
-it honors `uv.lock` rather than resolving fresh. It triggers on every PR and on pushes to `main`
-and `dev`.
+CI (`.github/workflows/ci.yml`) runs the same four steps across Python 3.11–3.14 via `uv sync`, so
+it honors `uv.lock` rather than resolving fresh. It triggers on every PR and on pushes to `main`.
+
+`.github/workflows/publish.yml` handles releases: pushing a `vX.Y.Z` tag builds, checks the tag
+against the version in `pyproject.toml` and uploads to Test PyPI; publishing the GitHub release
+for that tag uploads to PyPI. Both use trusted publishing, so there is no token in the repo.
 
 ## Python version
 
-`requires-python` is `>=3.10` and CI tests 3.10 through 3.14, while `.python-version` pins local
-dev to 3.14. **Code must stay valid on 3.10** — don't reach for newer syntax because the local
-interpreter accepts it. Both `ruff` (`target-version = "py310"`) and `mypy`
-(`python_version = "3.10"`) are configured to enforce that floor locally, so violations surface
+`requires-python` is `>=3.11` and CI tests 3.11 through 3.14, while `.python-version` pins local
+dev to 3.14. **Code must stay valid on 3.11** — don't reach for newer syntax because the local
+interpreter accepts it. Both `ruff` (`target-version = "py311"`) and `mypy`
+(`python_version = "3.11"`) are configured to enforce that floor locally, so violations surface
 before CI.
 
 ## Conventions
@@ -101,7 +105,10 @@ before CI.
 - **Branching model:** feature branches PR into `dev`; `main` is release-only. Always open PRs with
   `gh pr create --base dev` — `main` is the GitHub default branch, so the base must be set
   explicitly or the PR targets the wrong place.
-- **Keep `README.md` current.** Any commit that adds, removes, or changes user-facing API or
-  behaviour must update the README in the same commit -- the op tables, the examples, and the
-  roadmap checkboxes. Every code block in it is expected to run; verify before committing.
+- **Docstrings are a lint gate.** ruff's pydocstyle rules (`D`) run over `src/`; anything public
+  needs a docstring. `D1` is off for tests and examples.
+- **Keep `README.md` and `CHANGELOG.md` current.** Any commit that adds, removes, or changes
+  user-facing API or behaviour must update both in the same commit -- the op tables, the
+  examples, the roadmap checkboxes, and the Unreleased section. Every code block in the README
+  is expected to run; verify before committing.
 - `.env` is gitignored and holds `LINEAR_API_KEY`.
