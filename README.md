@@ -25,9 +25,8 @@ You install `pystreamlet` but import `streamlet`, as above — PyPI reserves nam
 `streamlit`. Requires **Python 3.11+**, has no dependencies, and ships type information
 (`py.typed`).
 
-> **Status: 0.1.0, awaiting its first upload.** Everything below works and is tested; until the
-> release lands on PyPI, install from source (see [Development](#development)). Before 1.0.0 the
-> API may still change — see [versioning](#versioning).
+> **Status: 0.1.0, on PyPI.** Everything below works and is tested. Before 1.0.0 the API may
+> still change — see [versioning](#versioning).
 
 ## Why
 
@@ -354,7 +353,7 @@ through trusted publishing, so no token lives in this repository.
 - [x] `Stream.from_file` — context-managed resource streams
 - [x] `AsyncStream` — bounded concurrent `map`
 - [x] Docstrings, README examples
-- [ ] PyPI release
+- [x] PyPI release
 
 ## License
 
