@@ -64,16 +64,24 @@ class AsyncStream(Generic[T]):
     __slots__ = ("__weakref__", "_consumed", "_iterator")
 
     def __init__(self, source: AsyncIterable[T]) -> None:
+        """Wrap an async source, without pulling anything from it yet."""
         self._iterator: AsyncIterator[T] = source.__aiter__()
         self._consumed = False
 
     def __aiter__(self) -> AsyncIterator[T]:
+        """Return the underlying async iterator, marking the stream consumed.
+
+        Raises:
+            StreamConsumedError: if the stream has already been iterated.
+
+        """
         if self._consumed:
             raise StreamConsumedError("this stream has already been consumed")
         self._consumed = True
         return self._iterator
 
     def __repr__(self) -> str:
+        """Show the class and whether the stream still has items to give."""
         state = "consumed" if self._consumed else "lazy"
         return f"<{type(self).__name__} {state}>"
 
@@ -154,7 +162,12 @@ class AsyncStream(Generic[T]):
     def map(self, mapper: Callable[[T], R]) -> AsyncStream[R]: ...
 
     def map(self, mapper: MaybeAsync[T, R]) -> AsyncStream[R]:
-        """Apply ``mapper`` to every item, one at a time.
+        """Apply ``mapper`` to every item, one at a time::
+
+            await AsyncStream.of("a", "b").map(fetch).to_list()
+
+        ``mapper`` may be a plain function or a coroutine function; an
+        awaitable result is awaited before it is yielded.
 
         See :meth:`map_concurrent` to run an async mapper over several items
         at once.
@@ -194,6 +207,7 @@ class AsyncStream(Generic[T]):
 
         Raises:
             ValueError: if ``limit`` is less than 1.
+
         """
         if limit < 1:
             raise ValueError(f"map_concurrent() requires a limit of at least 1, got {limit}")
@@ -273,7 +287,12 @@ class AsyncStream(Generic[T]):
         return AsyncStream(generate())
 
     def take(self, n: int) -> AsyncStream[T]:
-        """Yield at most the first ``n`` items."""
+        """Yield at most the first ``n`` items.
+
+        Raises:
+            ValueError: if ``n`` is negative.
+
+        """
         if n < 0:
             raise ValueError(f"take() requires a non-negative count, got {n}")
 
@@ -290,7 +309,12 @@ class AsyncStream(Generic[T]):
         return AsyncStream(generate())
 
     def skip(self, n: int) -> AsyncStream[T]:
-        """Discard the first ``n`` items."""
+        """Discard the first ``n`` items.
+
+        Raises:
+            ValueError: if ``n`` is negative.
+
+        """
         if n < 0:
             raise ValueError(f"skip() requires a non-negative count, got {n}")
 

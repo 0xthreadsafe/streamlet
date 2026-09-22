@@ -1,3 +1,10 @@
+"""The synchronous stream: :class:`Stream` and its ops.
+
+A stream wraps an iterator and defers every operation until a terminal op
+asks for items, so a chain reads in the order it runs and an infinite
+source stays safe as long as something bounds it.
+"""
+
 from __future__ import annotations
 
 import builtins
@@ -20,18 +27,41 @@ V = TypeVar("V")
 
 
 class StreamConsumedError(RuntimeError):
-    """Raised when a stream is iterated more than once."""
+    """Raised when a stream is iterated more than once.
+
+    A stream is single-use, like the iterator underneath it. Rather than
+    silently yielding nothing the second time, it raises -- which turns a
+    quiet wrong answer into an obvious error.
+    """
 
 
 class Stream(Generic[T]):
     """A lazy, single-use stream over an iterable.
 
-    Wraps an iterator and defers all work until iteration begins.
+    Intermediate ops (:meth:`map`, :meth:`filter`, :meth:`take`, ...) return
+    a new ``Stream`` and run nothing; a terminal op (:meth:`to_list`,
+    :meth:`count`, :meth:`reduce`, ...) pulls items through the chain::
+
+        Stream.of(1, 2, 3).map(lambda n: n * 2).to_list()  # [2, 4, 6]
+
+    Being lazy is what makes an infinite source usable -- bound it with
+    :meth:`take` or :meth:`take_while`. Being single-use is what makes the
+    cost obvious: iterating twice raises :class:`StreamConsumedError`
+    instead of quietly yielding nothing.
+
+    Element types flow through a chain, so ``Stream.of(1, 2).map(str)`` is a
+    ``Stream[str]``, and a few ops are restricted by self-type -- ``sum()``
+    to numbers, ``join()`` to strings, ``to_set()`` to hashables.
     """
 
     __slots__ = ("_consumed", "_iterator")
 
     def __init__(self, iterable: Iterable[T]) -> None:
+        """Wrap ``iterable``, without consuming anything from it yet.
+
+        Ownership is unchanged: a handle passed here is still the caller's to
+        close. Use :meth:`from_handle` to hand that duty over.
+        """
         self._iterator: Iterator[T] = iter(iterable)
         self._consumed = False
 
@@ -104,6 +134,7 @@ class Stream(Generic[T]):
 
         Raises:
             TypeError: if the handle has no ``close()`` method.
+
         """
         from streamlet.file_stream import resource_stream
 
@@ -156,12 +187,27 @@ class Stream(Generic[T]):
         return cls(())
 
     def __iter__(self) -> Iterator[T]:
+        """Return the underlying iterator, marking the stream consumed.
+
+        This is the single point where laziness ends: every terminal op goes
+        through it, so every one of them is also what makes the stream
+        single-use.
+
+        Raises:
+            StreamConsumedError: if the stream has already been iterated.
+
+        """
         if self._consumed:
             raise StreamConsumedError("this stream has already been consumed")
         self._consumed = True
         return self._iterator
 
     def __repr__(self) -> str:
+        """Show the class and whether the stream still has items to give.
+
+        Deliberately says nothing about the contents: inspecting them would
+        consume the very stream being inspected.
+        """
         state: str = "consumed" if self._consumed else "lazy"
         return f"<{type(self).__name__} {state}>"
 
@@ -175,11 +221,20 @@ class Stream(Generic[T]):
         return fn(self)
 
     def map(self, mapper: Callable[[T], R]) -> Stream[R]:
-        """Apply ``mapper`` to every item."""
+        """Apply ``mapper`` to every item, lazily::
+
+            Stream.of(1, 2, 3).map(str).to_list()  # ["1", "2", "3"]
+
+        ``mapper`` runs once per item that is actually pulled, not once per
+        item in the source.
+        """
         return Stream(mapper(item) for item in self)
 
     def filter(self, predicate: Callable[[T], bool]) -> Stream[T]:
-        """Keep only items where ``predicate`` is true."""
+        """Keep only items where ``predicate`` is true::
+
+        Stream(range(6)).filter(lambda n: n % 2 == 0).to_list()  # [0, 2, 4]
+        """
         return Stream(item for item in self if predicate(item))
 
     def take(self, n: int) -> Stream[T]:
@@ -187,6 +242,7 @@ class Stream(Generic[T]):
 
         Raises:
             ValueError: if ``n`` is negative.
+
         """
         if n < 0:
             raise ValueError(f"take() requires a non-negative count, got {n}")
@@ -197,6 +253,7 @@ class Stream(Generic[T]):
 
         Raises:
             ValueError: if ``n`` is negative.
+
         """
         if n < 0:
             raise ValueError(f"skip() requires a non-negative count, got {n}")
@@ -233,7 +290,12 @@ class Stream(Generic[T]):
         return Stream(generate())
 
     def flat_map(self, fn: Callable[[T], Iterable[R]]) -> Stream[R]:
-        """Map each item to an iterable and flatten one level."""
+        """Map each item to an iterable and flatten one level::
+
+            Stream.of("ab", "cd").flat_map(list).to_list()  # ["a", "b", "c", "d"]
+
+        One level only -- a stream of lists of lists stays nested inside.
+        """
         return Stream(result for item in self for result in fn(item))
 
     def sorted(
@@ -246,6 +308,10 @@ class Stream(Generic[T]):
 
         This op must read the whole stream before it can emit anything, so it
         buffers every item in memory and never finishes on an infinite source.
+
+        Raises:
+            TypeError: if the items (or their keys) are not comparable.
+
         """
         return Stream(sorted(self, key=key, reverse=reverse))  # type: ignore[type-var,arg-type]
 
@@ -270,11 +336,21 @@ class Stream(Generic[T]):
         return Stream(generate())
 
     def min(self, key: Callable[[T], Any] | None = None) -> T | None:
-        """Return the smallest item, or ``None`` if the stream is empty."""
+        """Return the smallest item, or ``None`` if the stream is empty.
+
+        Raises:
+            TypeError: if the items (or their keys) are not comparable.
+
+        """
         return builtins.min(self, key=key, default=None)  # type: ignore[type-var,arg-type]
 
     def max(self, key: Callable[[T], Any] | None = None) -> T | None:
-        """Return the largest item, or ``None`` if the stream is empty."""
+        """Return the largest item, or ``None`` if the stream is empty.
+
+        Raises:
+            TypeError: if the items (or their keys) are not comparable.
+
+        """
         return builtins.max(self, key=key, default=None)  # type: ignore[type-var,arg-type]
 
     def none(self, predicate: Callable[[T], bool]) -> bool:
@@ -348,7 +424,13 @@ class Stream(Generic[T]):
         return builtins.sum(self)
 
     def reduce(self, fn: Callable[[R, T], R], initial: R) -> R:
-        """Fold the stream into a single value, starting from ``initial``."""
+        """Fold the stream into a single value, starting from ``initial``::
+
+            Stream.of(1, 2, 3).reduce(lambda total, n: total + n, 0)  # 6
+
+        ``initial`` is required, which is what lets the result type differ
+        from the item type and removes the empty-stream special case.
+        """
         return functools.reduce(fn, self, initial)
 
     def first(self) -> T | None:
