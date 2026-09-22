@@ -9,7 +9,7 @@ from os import PathLike
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 if TYPE_CHECKING:
-    from streamlet.file_stream import FileStream
+    from streamlet.file_stream import ClosableIterable, FileStream, ResourceStream
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -76,6 +76,38 @@ class Stream(Generic[T]):
         from streamlet.file_stream import open_file_stream
 
         return open_file_stream(path, encoding=encoding, errors=errors, newline=newline)
+
+    @classmethod
+    def from_handle(
+        cls,
+        handle: ClosableIterable[T],
+        *,
+        close: bool = True,
+    ) -> ResourceStream[T]:
+        """Stream a handle you already have, saying who closes it.
+
+        ``Stream(handle)`` leaves the handle to whoever opened it, which is
+        the right default but leaks it if nobody follows up. This transfers
+        that duty explicitly::
+
+            Stream.from_handle(sock.makefile())  # stream closes it
+            Stream.from_handle(sys.stdin, close=False)  # caller keeps it
+
+        With ``close=True`` (the default) the resource is closed on every exit
+        path -- exhaustion, an early ``break``, an exception, or leaving the
+        returned stream's ``with`` block. With ``close=False`` nothing is
+        closed for you.
+
+        Works for anything iterable with a ``close()``: socket files,
+        ``os.popen`` pipes, ``io.StringIO``, database cursors. For a path,
+        use :meth:`from_file` instead.
+
+        Raises:
+            TypeError: if the handle has no ``close()`` method.
+        """
+        from streamlet.file_stream import resource_stream
+
+        return resource_stream(handle, close=close)
 
     @classmethod
     def iterate(cls, seed: T, fn: Callable[[T], T]) -> Stream[T]:
