@@ -29,13 +29,14 @@ Target is a published PyPI package (the name is confirmed available).
 
 M1-M6 are complete bar the upload itself. `src/streamlet/stream.py` holds `Stream[T]`;
 `file_stream.py` holds `ResourceStream[T]`/`FileStream` (`from_file`, `from_handle`);
-`async_stream.py` holds `AsyncStream[T]` with `map_concurrent`. 336 tests pass under
+`async_stream.py` holds `AsyncStream[T]` with `map_concurrent`. 349 tests pass under
 `mypy --strict`, including Hypothesis property tests, direct laziness proofs (call spies and
-pull counters, not just infinite-source canaries), closing guarantees and async exception
-propagation. `py.typed` ships in the wheel so consumers get real types.
+pull counters, not just infinite-source canaries), closing guarantees on both the sync and
+async sides, and async exception propagation. `py.typed` ships in the wheel so consumers get
+real types.
 
-Still open: THR-26's actual uploads (Test PyPI, then PyPI -- both need trusted publishing
-configured first) and THR-34, propagating `aclose` through `AsyncStream` stages.
+Still open: THR-26's actual uploads -- Test PyPI, then PyPI. Both need trusted publishing
+configured on the index side first; the workflow is already in the repo.
 
 Roadmap milestones, tracked in Linear: **M1** scaffolding/lint/CI · **M2** core `Stream[T]`,
 intermediate + terminal ops, laziness tests · **M3** `__or__`, constructors, `group_by`, edge cases

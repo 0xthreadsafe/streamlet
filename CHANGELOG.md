@@ -9,14 +9,6 @@ anything else bumps the patch version.
 
 ## [Unreleased]
 
-### Fixed
-
-- `AsyncStream` now finalises its source as soon as a pipeline is done with it. Each stage closes
-  the one behind it, so a bounded `take`, a short-circuiting terminal op (`first`, `any`, `all`),
-  an exception or an explicit `aclose` unwinds the whole chain instead of leaving the source
-  suspended until the event loop shut its async generators down. A bare `break` out of an
-  `async for` still needs `contextlib.aclosing` — Python offers no hook for it.
-
 ## [0.1.0] — 2026-09-22
 
 First release.
@@ -39,7 +31,11 @@ First release.
   with ownership stated explicitly. Works for any iterable with a `close()`: socket files,
   `os.popen` pipes, `io.StringIO`, database cursors. Backed by a generic `ResourceStream[T]`.
 - `AsyncStream[T]` — the same API over an async source, driven with `async for` and `await`.
-  Every op that takes a function accepts a plain function or a coroutine function.
+  Every op that takes a function accepts a plain function or a coroutine function. Cleanup is
+  deterministic: each stage closes the one behind it, so a bounded `take`, a short-circuiting
+  terminal op (`first`, `any`, `all`), an exception or an explicit `aclose` unwinds the whole
+  chain to the source. A bare `break` out of an `async for` still needs `contextlib.aclosing` —
+  Python offers no hook for it.
 - `AsyncStream.map_concurrent(mapper, limit=8, ordered=True)` — bounded concurrency that stays
   lazy: at most `limit` calls in flight, items pulled only as slots free up, so it works on
   infinite sources. A failing mapper propagates the original exception (not an `ExceptionGroup`)
