@@ -44,6 +44,66 @@ list(islice((n**2 for n in count() if n % 2 == 0), 5))
 Both are lazy and both handle infinite sources. The difference is that one describes the
 pipeline in the order it runs.
 
+### Side by side
+
+**Take the first few results of an expensive step.** `islice` wraps what it slices, so the
+bound you care about ends up furthest from the work it bounds:
+
+```python
+from itertools import islice
+
+list(islice(map(fetch, filter(is_recent, urls)), 5))
+
+Stream(urls).filter(is_recent).map(fetch).take(5).to_list()
+```
+
+**Group items by a key.** `itertools.groupby` only groups *adjacent* items, so it needs a sort
+first and hands back iterators that expire as you advance:
+
+```python
+from itertools import groupby
+from operator import attrgetter
+
+by_team = {
+    team: list(members)
+    for team, members in groupby(sorted(users, key=attrgetter("team")), key=attrgetter("team"))
+}
+
+by_team = Stream(users).group_by(attrgetter("team"))
+```
+
+**Drop repeats but keep order.** The `set` version loses order, and the `dict.fromkeys` trick
+reads as a puzzle:
+
+```python
+list(dict.fromkeys(names))
+
+Stream(names).distinct().to_list()
+```
+
+**Chain a few steps over a file.** The itertools version needs a `with` block, a generator
+expression and a slice, in three different directions:
+
+```python
+with open("app.log", encoding="utf-8") as handle:
+    first_errors = list(islice((line for line in handle if line.startswith("ERROR")), 10))
+
+with Stream.from_file("app.log") as lines:
+    first_errors = lines.filter(lambda line: line.startswith("ERROR")).take(10).to_list()
+```
+
+**Stop as soon as one item matches.** `next()` with a default over a generator expression says
+the same thing, more quietly:
+
+```python
+next((user for user in users if user.is_admin), None)
+
+Stream(users).filter(lambda user: user.is_admin).first()
+```
+
+None of these are faster than the `itertools` version — they compile to the same generators.
+They are shorter to read and, more usefully, they read in the order the work happens.
+
 ## Laziness
 
 Nothing executes until a terminal op runs. Intermediate ops just build a pipeline:
