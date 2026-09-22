@@ -16,7 +16,7 @@ from os import PathLike
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 if TYPE_CHECKING:
-    from streamlet.file_stream import ClosableIterable, FileStream, ResourceStream
+    from pystreamlet.file_stream import ClosableIterable, FileStream, ResourceStream
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -95,7 +95,7 @@ class Stream(Generic[T]):
     ) -> FileStream:
         """Stream the lines of a file, closing the handle when done.
 
-        Returns a :class:`~streamlet.file_stream.FileStream`, which closes the
+        Returns a :class:`~pystreamlet.file_stream.FileStream`, which closes the
         handle on every exit path and is also a context manager::
 
             with Stream.from_file("app.log") as lines:
@@ -103,7 +103,7 @@ class Stream(Generic[T]):
 
         Lines keep their trailing newline, matching ``open()``.
         """
-        from streamlet.file_stream import open_file_stream
+        from pystreamlet.file_stream import open_file_stream
 
         return open_file_stream(path, encoding=encoding, errors=errors, newline=newline)
 
@@ -136,7 +136,7 @@ class Stream(Generic[T]):
             TypeError: if the handle has no ``close()`` method.
 
         """
-        from streamlet.file_stream import resource_stream
+        from pystreamlet.file_stream import resource_stream
 
         return resource_stream(handle, close=close)
 

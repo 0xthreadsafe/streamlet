@@ -15,7 +15,7 @@ from typing import cast
 
 import pytest
 
-from streamlet import ClosableIterable, ResourceStream, Stream, StreamConsumedError
+from pystreamlet import ClosableIterable, ResourceStream, Stream, StreamConsumedError
 
 
 class Tracked:

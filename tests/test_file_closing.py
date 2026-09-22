@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from streamlet import FileStream, Stream, StreamConsumedError
+from pystreamlet import FileStream, Stream, StreamConsumedError
 
 LINES = "a\nb\nc\nd\n"
 

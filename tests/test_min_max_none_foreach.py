@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from streamlet import Stream, StreamConsumedError
+from pystreamlet import Stream, StreamConsumedError
 
 ints = st.lists(st.integers())
 words = st.lists(st.text())

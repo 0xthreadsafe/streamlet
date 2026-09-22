@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from streamlet import FileStream, Stream
+from pystreamlet import FileStream, Stream
 
 LOG = "INFO boot\nERROR disk full\nINFO ready\nERROR net down\n"
 
@@ -90,7 +90,7 @@ def test_encoding_errors_can_be_ignored(tmp_path: Path) -> None:
 
 
 def test_is_single_use_like_any_stream(log_file: Path) -> None:
-    from streamlet import StreamConsumedError
+    from pystreamlet import StreamConsumedError
 
     stream = Stream.from_file(log_file)
     stream.to_list()

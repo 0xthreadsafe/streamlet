@@ -18,7 +18,7 @@ from typing import cast
 
 import pytest
 
-from streamlet import AsyncStream
+from pystreamlet import AsyncStream
 
 
 class Source:

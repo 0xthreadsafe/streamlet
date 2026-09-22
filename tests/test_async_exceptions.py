@@ -13,7 +13,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from streamlet import AsyncStream, Stream, StreamConsumedError
+from pystreamlet import AsyncStream, Stream, StreamConsumedError
 
 ints = st.lists(st.integers())
 counts = st.integers(min_value=0, max_value=100)

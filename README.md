@@ -3,7 +3,7 @@
 A fluent, **lazy** stream-processing library for Python, modeled after Java's Streams API.
 
 ```python
-from streamlet import Stream
+from pystreamlet import Stream
 
 (
     Stream.from_iterable(range(100))
@@ -21,12 +21,11 @@ The goal is to make `itertools`' power reachable through clean, chainable syntax
 pip install pystreamlet    # or: uv add pystreamlet
 ```
 
-You install `pystreamlet` but import `streamlet`, as above — PyPI reserves names confusable with
-`streamlit`. Requires **Python 3.11+**, has no dependencies, and ships type information
-(`py.typed`).
+Requires **Python 3.11+**, has no dependencies, and ships type information (`py.typed`).
 
-> **Status: 0.1.0, on PyPI.** Everything below works and is tested. Before 1.0.0 the API may
-> still change — see [versioning](#versioning).
+> **Status: 0.2.0, on PyPI.** Everything below works and is tested. Before 1.0.0 the API may
+> still change — see [versioning](#versioning). Coming from 0.1.0? The import moved from
+> `streamlet` to `pystreamlet`, matching the install name; nothing else changed.
 
 ## Why
 
@@ -38,7 +37,7 @@ from itertools import count, islice
 
 list(islice((n**2 for n in count() if n % 2 == 0), 5))
 
-# streamlet: read left to right, in the order it happens
+# pystreamlet: read left to right, in the order it happens
 (
     Stream.iterate(0, lambda n: n + 1)
     .filter(lambda n: n % 2 == 0)
@@ -234,7 +233,7 @@ something you opened would break the whoever-opens-closes convention.
 ```python
 import asyncio
 
-from streamlet import AsyncStream
+from pystreamlet import AsyncStream
 
 
 async def fetch(url: str) -> str: ...

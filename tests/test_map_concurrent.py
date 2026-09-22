@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from streamlet import AsyncStream
+from pystreamlet import AsyncStream
 
 
 class Tracker:

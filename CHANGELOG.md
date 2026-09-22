@@ -9,10 +9,28 @@ anything else bumps the patch version.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-22
+
+### Changed
+
+- **Breaking: the import name is now `pystreamlet`, matching what you install.** 0.1.0 shipped as
+  `pip install pystreamlet` but `import streamlet`, because PyPI refuses `streamlet` as confusable
+  with `streamlit`. One name is easier to remember than two, and the mismatch was worth fixing
+  while nothing depends on this package.
+
+  ```python
+  from streamlet import Stream  # 0.1.0
+  from pystreamlet import Stream  # 0.2.0
+  ```
+
+  The console script is `pystreamlet` for the same reason. Nothing else changed — same API, same
+  behaviour, same tests.
+
 ## [0.1.0] — 2026-09-22
 
 First release. Published as **`pystreamlet`** on PyPI — the plain `streamlet` name is blocked
-there as confusable with `streamlit` — while the import stays `from streamlet import Stream`.
+there as confusable with `streamlit` — while the import was `from streamlet import Stream`
+(renamed to match the distribution in 0.2.0).
 
 ### Added
 
@@ -44,5 +62,6 @@ there as confusable with `streamlit` — while the import stays `from streamlet 
 - Typing: generic throughout, self-typed restrictions (`sum` on numbers, `join` on strings,
   `to_set`/`distinct`/`group_by` on hashables), and a `py.typed` marker in the wheel.
 
-[Unreleased]: https://github.com/0xthreadsafe/streamlet/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/0xthreadsafe/streamlet/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/0xthreadsafe/streamlet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/0xthreadsafe/streamlet/releases/tag/v0.1.0

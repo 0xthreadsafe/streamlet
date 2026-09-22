@@ -23,13 +23,13 @@ prefer the idiomatic-and-showcase-worthy implementation over the shortest one:
 | Generics | `Stream[T]` via `typing.Generic`, for real IDE autocomplete |
 | Terminal ops | `to_list`, `reduce`, `sum`, `count`, `first`, `any`, `all`, `group_by` |
 
-Target is a published PyPI package. The distribution is named **`pystreamlet`**: PyPI refuses
-`streamlet` as confusable with `streamlit`, and TestPyPI's `streamlet` is taken by an unrelated
-project. The import name stays `streamlet` -- only the packaging metadata carries `pystreamlet`.
+Published on PyPI as **`pystreamlet`**, which is also the import name. PyPI refuses `streamlet`
+as confusable with `streamlit`, and TestPyPI's `streamlet` belongs to an unrelated project, so
+0.2.0 renamed the module to match the distribution. The GitHub repo is still `streamlet`.
 
 ## Project state
 
-M1-M6 are complete bar the upload itself. `src/streamlet/stream.py` holds `Stream[T]`;
+M1-M6 are complete bar the upload itself. `src/pystreamlet/stream.py` holds `Stream[T]`;
 `file_stream.py` holds `ResourceStream[T]`/`FileStream` (`from_file`, `from_handle`);
 `async_stream.py` holds `AsyncStream[T]` with `map_concurrent`. 349 tests pass under
 `mypy --strict`, including Hypothesis property tests, direct laziness proofs (call spies and
@@ -37,8 +37,8 @@ pull counters, not just infinite-source canaries), closing guarantees on both th
 async sides, and async exception propagation. `py.typed` ships in the wheel so consumers get
 real types.
 
-Still open: THR-26's actual uploads -- Test PyPI, then PyPI. Both need trusted publishing
-configured on the index side first; the workflow is already in the repo.
+0.1.0 and 0.2.0 are published. Releases go out by tagging `vX.Y.Z` and publishing the GitHub
+release for that tag; see the publish workflow.
 
 Roadmap milestones, tracked in Linear: **M1** scaffolding/lint/CI · **M2** core `Stream[T]`,
 intermediate + terminal ops, laziness tests · **M3** `__or__`, constructors, `group_by`, edge cases

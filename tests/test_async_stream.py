@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from streamlet import AsyncStream, StreamConsumedError
+from pystreamlet import AsyncStream, StreamConsumedError
 
 
 async def double(n: int) -> int:

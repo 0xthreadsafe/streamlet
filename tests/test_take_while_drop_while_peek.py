@@ -5,7 +5,7 @@ from itertools import count
 from hypothesis import given
 from hypothesis import strategies as st
 
-from streamlet import Stream
+from pystreamlet import Stream
 
 ints = st.lists(st.integers())
 

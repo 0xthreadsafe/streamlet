@@ -7,7 +7,7 @@ mapper was called, and how many items were pulled from the source.
 
 from collections.abc import Callable, Iterator
 
-from streamlet import Stream
+from pystreamlet import Stream
 
 
 class CallSpy:

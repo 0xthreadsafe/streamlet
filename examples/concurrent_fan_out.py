@@ -19,7 +19,7 @@ import asyncio
 import time
 from dataclasses import dataclass
 
-from streamlet import AsyncStream
+from pystreamlet import AsyncStream
 
 USER_IDS = list(range(1, 25))
 CONCURRENCY = 8

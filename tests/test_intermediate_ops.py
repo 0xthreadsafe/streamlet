@@ -3,7 +3,7 @@ from itertools import count, islice
 from hypothesis import given
 from hypothesis import strategies as st
 
-from streamlet import Stream
+from pystreamlet import Stream
 
 ints = st.lists(st.integers())
 counts = st.integers(min_value=0, max_value=1000)

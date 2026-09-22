@@ -1,6 +1,6 @@
 """Lazy asynchronous streams.
 
-``AsyncStream`` mirrors :class:`~streamlet.stream.Stream`, but pulls from an
+``AsyncStream`` mirrors :class:`~pystreamlet.stream.Stream`, but pulls from an
 async source and is driven with ``async for`` / ``await``. Every operation
 that takes a function accepts either a plain function or a coroutine
 function, so ``map(str)`` and ``map(fetch)`` both work.
@@ -22,7 +22,7 @@ from collections.abc import (
 from contextlib import asynccontextmanager
 from typing import Any, Generic, TypeVar, cast, overload
 
-from streamlet.stream import StreamConsumedError
+from pystreamlet.stream import StreamConsumedError
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -91,7 +91,7 @@ class AsyncStream(Generic[T]):
 
         total = await AsyncStream.from_iterable(urls).map(fetch).count()
 
-    Like :class:`~streamlet.stream.Stream`, a stream is consumed once;
+    Like :class:`~pystreamlet.stream.Stream`, a stream is consumed once;
     iterating a second time raises :class:`StreamConsumedError`.
 
     Cleanup runs eagerly: each stage closes the one behind it, so a bounded

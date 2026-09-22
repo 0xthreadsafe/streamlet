@@ -2,7 +2,7 @@ from itertools import count
 
 import pytest
 
-from streamlet import Stream, StreamConsumedError
+from pystreamlet import Stream, StreamConsumedError
 
 
 def test_wraps_an_iterable() -> None:

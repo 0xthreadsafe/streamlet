@@ -1,4 +1,4 @@
-from streamlet import main
+from pystreamlet import main
 
 
 def test_main_run() -> None:

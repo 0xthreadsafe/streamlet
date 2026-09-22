@@ -8,7 +8,7 @@ from pathlib import Path
 from types import TracebackType
 from typing import IO, Protocol, Self, TypeVar, runtime_checkable
 
-from streamlet.stream import Stream
+from pystreamlet.stream import Stream
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)

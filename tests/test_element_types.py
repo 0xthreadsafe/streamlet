@@ -12,7 +12,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from streamlet import Stream
+from pystreamlet import Stream
 
 words = st.lists(st.text())
 floats = st.lists(st.floats(allow_nan=False, allow_infinity=False))
