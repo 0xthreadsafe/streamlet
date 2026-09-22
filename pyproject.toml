@@ -1,5 +1,5 @@
 [project]
-name = "streamlet"
+name = "pystreamlet"
 version = "0.1.0"
 description = "A fluent, lazy stream-processing library for Python, modeled after Java's Streams API"
 readme = "README.md"
@@ -36,6 +36,11 @@ streamlet = "streamlet:main"
 [build-system]
 requires = ["uv_build>=0.10.4,<0.11.0"]
 build-backend = "uv_build"
+
+# The distribution is pystreamlet but the module stays streamlet, so the
+# backend has to be told rather than inferring the path from the name.
+[tool.uv.build-backend]
+module-name = "streamlet"
 
 [dependency-groups]
 dev = [

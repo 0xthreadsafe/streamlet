@@ -11,7 +11,8 @@ anything else bumps the patch version.
 
 ## [0.1.0] — 2026-09-22
 
-First release.
+First release. Published as **`pystreamlet`** on PyPI — the plain `streamlet` name is blocked
+there as confusable with `streamlit` — while the import stays `from streamlet import Stream`.
 
 ### Added
 

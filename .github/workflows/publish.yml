@@ -1,9 +1,12 @@
 name: Publish
 
 # Builds on every tag, then publishes through PyPI's trusted publishing (OIDC),
-# so no API token is stored in this repo. Test PyPI runs on the tag; PyPI runs
-# only once the GitHub release for that tag is published, which keeps the real
-# upload a deliberate, manual step.
+# so no API token is stored in this repo. The upload runs only once the GitHub
+# release for that tag is published, which keeps it a deliberate, manual step.
+#
+# There is no Test PyPI rehearsal: `streamlet` there is taken by an unrelated
+# project, and PyPI refuses that name as confusable with `streamlit`, so the
+# distribution is `pystreamlet` and only the real index is configured.
 
 on:
   push:
@@ -34,22 +37,6 @@ jobs:
         with:
           name: dist
           path: dist/
-
-  test-pypi:
-    needs: build
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment: test-pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
 
   pypi:
     needs: build

@@ -23,7 +23,9 @@ prefer the idiomatic-and-showcase-worthy implementation over the shortest one:
 | Generics | `Stream[T]` via `typing.Generic`, for real IDE autocomplete |
 | Terminal ops | `to_list`, `reduce`, `sum`, `count`, `first`, `any`, `all`, `group_by` |
 
-Target is a published PyPI package (the name is confirmed available).
+Target is a published PyPI package. The distribution is named **`pystreamlet`**: PyPI refuses
+`streamlet` as confusable with `streamlit`, and TestPyPI's `streamlet` is taken by an unrelated
+project. The import name stays `streamlet` -- only the packaging metadata carries `pystreamlet`.
 
 ## Project state
 

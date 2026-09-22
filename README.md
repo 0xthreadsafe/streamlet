@@ -18,10 +18,12 @@ from streamlet import Stream
 The goal is to make `itertools`' power reachable through clean, chainable syntax.
 
 ```bash
-pip install streamlet    # or: uv add streamlet
+pip install pystreamlet    # or: uv add pystreamlet
 ```
 
-Requires **Python 3.11+**, has no dependencies, and ships type information (`py.typed`).
+You install `pystreamlet` but import `streamlet`, as above — PyPI reserves names confusable with
+`streamlit`. Requires **Python 3.11+**, has no dependencies, and ships type information
+(`py.typed`).
 
 > **Status: 0.1.0, awaiting its first upload.** Everything below works and is tested; until the
 > release lands on PyPI, install from source (see [Development](#development)). Before 1.0.0 the
@@ -341,10 +343,9 @@ Streamlet follows [semantic versioning](https://semver.org/spec/v2.0.0.html). Be
 breaking change bumps the minor version and everything else bumps the patch version. Changes
 are recorded in [CHANGELOG.md](CHANGELOG.md).
 
-Releases are cut from a tag: pushing `vX.Y.Z` builds the artifacts, checks the tag against the
-version in `pyproject.toml`, and uploads to Test PyPI. Publishing the GitHub release for that
-tag uploads the same artifacts to PyPI. Both go through PyPI trusted publishing, so no token
-lives in this repository.
+Releases are cut from a tag: pushing `vX.Y.Z` builds the artifacts and checks the tag against the
+version in `pyproject.toml`. Publishing the GitHub release for that tag uploads them to PyPI
+through trusted publishing, so no token lives in this repository.
 
 ## Roadmap
 
