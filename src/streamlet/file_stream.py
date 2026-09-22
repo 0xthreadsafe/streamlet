@@ -24,7 +24,9 @@ class ClosableIterable(Protocol[T_co]):
 
     def __iter__(self) -> Iterator[T_co]: ...
 
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """Release the resource."""
+        ...
 
 
 class _NoClose(Iterator[T]):
@@ -166,6 +168,7 @@ def resource_stream(
 
     Raises:
         TypeError: if the resource has no ``close()`` method.
+
     """
     if not isinstance(resource, ClosableIterable):
         raise TypeError(
