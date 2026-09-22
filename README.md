@@ -85,6 +85,7 @@ stream.to_list()  # StreamConsumedError
 | `Stream.generate(fn)` | infinite: repeated calls to `fn()` |
 | `Stream.concat(*iterables)` | join sources end to end |
 | `Stream.from_file(path)` | lines of a file, handle managed |
+| `Stream.from_handle(handle, close=True)` | a handle you already have, ownership stated |
 
 ### Intermediate ops — lazy, return a new `Stream`
 
@@ -142,6 +143,22 @@ clearest way to express the intent, and it closes the file even if you never ite
 
 Lines keep their trailing newline, matching `open()`. Pass `encoding`, `errors` or `newline`
 through as needed.
+
+### Handles you already have
+
+`Stream(handle)` leaves the handle to whoever opened it — the right default, but it leaks if
+nobody follows up. `Stream.from_handle` makes the hand-off explicit:
+
+```python
+Stream.from_handle(sock.makefile())  # the stream closes it
+Stream.from_handle(sys.stdin, close=False)  # you keep it
+```
+
+With `close=True` (the default) the resource is closed on the same paths `from_file` covers;
+with `close=False` nothing is closed for you. It works for anything iterable with a `close()` —
+socket files, `os.popen` pipes, `io.StringIO`, database cursors — and raises `TypeError` for an
+iterable that has none. Streamlet never auto-detects handles in `Stream(...)`: silently closing
+something you opened would break the whoever-opens-closes convention.
 
 ## Async
 
